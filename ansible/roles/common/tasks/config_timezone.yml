@@ -1,0 +1,3 @@
+---
+- name: set timezone to Asia/Shanghai
+  command: timedatectl set-timezone Asia/Shanghai

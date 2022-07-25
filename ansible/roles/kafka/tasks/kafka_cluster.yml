@@ -1,0 +1,23 @@
+---
+- name: create /opt/idcos
+  file:
+    path: /opt/idcos
+    state: directory
+    mode: 0755
+- name: copy kafka docker compose
+  template:
+    src: kafka.yml.j2
+    dest: /opt/idcos/kafka.yml
+    mode: 0644
+- name: start kafka service
+  shell: docker-compose -f /opt/idcos/kafka.yml up -d
+- name: wait for cluster ready
+  wait_for:
+    timeout: 20
+  delegate_to: localhost
+- name: get kafka cluster info
+  shell: docker-compose -f /opt/idcos/kafka.yml exec -T kafka bash -c 'zookeeper-shell.sh {{ hostvars[groups['middleware'][0]].private_ip }}:2181 get /brokers/ids/{{ ansible_play_hosts.index(inventory_hostname) + 1 }}' | grep endpoints | python -c 'import json, sys; print(json.load(sys.stdin)["endpoints"][0])'
+  register: result
+- name: show kafka cluster info
+  debug:
+    msg: "kafka {{ result.stdout }}"

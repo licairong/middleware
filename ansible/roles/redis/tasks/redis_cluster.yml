@@ -1,0 +1,23 @@
+---
+- name: create /opt/idcos
+  file:
+    path: /opt/idcos
+    state: directory
+    mode: 0755
+- name: copy redis docker compose
+  template:
+    src: redis.yml.j2
+    dest: /opt/idcos/redis.yml
+    mode: 0644
+- name: start redis service
+  shell: docker-compose -f /opt/idcos/redis.yml up -d
+- name: wait for cluster ready
+  wait_for:
+    timeout: 10
+  delegate_to: localhost
+- name: get redis cluster info
+  shell: docker-compose -f /opt/idcos/redis.yml exec -T redis-node-0 bash -c 'redis-cli -a {{ REDIS_PASSWORD }} cluster info' | grep 'cluster_state'
+  register: result
+- name: show redis cluster info
+  debug:
+    msg: "redis {{ result.stdout }}"

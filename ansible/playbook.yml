@@ -1,0 +1,55 @@
+---
+- hosts: all
+  gather_facts: false
+  remote_user: root
+  any_errors_fatal: true
+  tasks:
+    - name: Wait connection
+      ## 每秒尝试进行一次连接直到连接成功或者超时
+      wait_for_connection: 
+        sleep: 1
+        timeout: "{{ wait_connection_timeout }}"
+        
+- hosts: middleware
+  gather_facts: no
+  remote_user: root
+  any_errors_fatal: true
+  roles:
+    - common
+
+- hosts: middleware
+  gather_facts: no
+  remote_user: root
+  any_errors_fatal: true
+  roles:
+    - zookeeper
+
+- hosts: middleware
+  gather_facts: no
+  remote_user: root
+  any_errors_fatal: true
+  roles:
+    - kafka
+
+- hosts: middleware
+  gather_facts: no
+  remote_user: root
+  any_errors_fatal: true
+  roles:
+    - redis
+
+- hosts: middleware
+  gather_facts: no
+  remote_user: root
+  any_errors_fatal: true
+  roles:
+    - minio
+
+- hosts: middleware
+  gather_facts: no
+  remote_user: root
+  any_errors_fatal: true
+  roles:
+    - mysql
+
+

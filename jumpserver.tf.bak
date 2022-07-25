@@ -1,0 +1,48 @@
+resource "alicloud_security_group" "jumpserver" {
+  name = "mid-jumpserver"
+  vpc_id = var.vpc_id
+}
+
+resource "alicloud_security_group_rule" "allow_tcp_22" {
+  type              = "ingress"
+  ip_protocol       = "tcp"
+  nic_type          = "intranet"
+  port_range        = "22/22"
+  security_group_id = alicloud_security_group.jumpserver.id
+  cidr_ip           = "0.0.0.0/0"
+}
+
+resource "alicloud_eip" "jumpserver" {
+  address_name         = "jumpserver-eip"
+  bandwidth            = "100"
+  internet_charge_type = "PayByTraffic"
+}
+
+resource "alicloud_instance" "jumpserver" {
+  availability_zone    = var.availability_zone
+  security_groups      = [alicloud_security_group.default.id]
+  instance_type        = var.instance_type
+  system_disk_category = "cloud_efficiency"
+  image_id             = var.image_id
+  instance_name        = "jumpserver"
+  vswitch_id           = var.vswitch_id
+  key_name             = alicloud_ecs_key_pair.default.key_pair_name
+}
+
+resource "alicloud_eip_association" "cloudiac_eip_ass" {
+  allocation_id = alicloud_eip.jumpserver.id
+  instance_id   = alicloud_instance.jumpserver.id
+}
+
+resource "ansible_host" "jumpserver" {
+  // 配置机器的 hostname
+  inventory_hostname = alicloud_eip.jumpserver.ip_address
+
+  // 配置机器所属分组
+  groups = ["jumpservers"]
+
+  vars = {
+    ansible_host = alicloud_eip.jumpserver.ip_address
+    ansible_ssh_common_args = ""
+  }
+}

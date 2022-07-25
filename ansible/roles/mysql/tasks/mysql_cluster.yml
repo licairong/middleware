@@ -1,0 +1,42 @@
+---
+- name: create /opt/idcos
+  file:
+    path: /opt/idcos
+    state: directory
+    mode: 0755
+- name: copy mysql docker compose
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: 0644
+  with_items:
+    - { src: my.cnf.j2, dest: /opt/idcos/my.cnf }
+    - { src: mysql.yml.j2, dest: /opt/idcos/mysql.yml }
+- name: start mysql service
+  shell: docker-compose -f /opt/idcos/mysql.yml up -d
+- name: wait for cluster ready
+  wait_for:
+    timeout: 20
+  delegate_to: localhost
+- name: grant user privileges
+  shell: |
+    docker-compose -f /opt/idcos/mysql.yml exec -T mysql bash -c "mysql -uroot -p'{{ MYSQL_ROOT_PASSWORD }}' -e \"
+    GRANT ALL PRIVILEGES ON *.* TO '{{ MYSQL_USER }}'@'%';
+    FLUSH PRIVILEGES;
+    \""
+  when: "ansible_play_hosts.index(inventory_hostname) == 0"
+- name: get mysql cluster info
+  shell: |
+    docker-compose -f /opt/idcos/mysql.yml exec -T mysql bash -c "mysql -uroot -p'{{ MYSQL_ROOT_PASSWORD }}' -Ns -e \"
+    SHOW PROCESSLIST;\"" | grep -v "SHOW PROCESSLIST"
+  register: result
+  when: "ansible_play_hosts.index(inventory_hostname) == 0"
+- name: show mysql cluster info
+  debug:
+    msg: "{{ result.stdout_lines | replace('\\t', ' ') }}"
+  when: "ansible_play_hosts.index(inventory_hostname) == 0"
+
+
+
+
+  

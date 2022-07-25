@@ -1,0 +1,37 @@
+version: "2"
+
+services:
+  mysql:
+    image: registry-vpc.cn-hangzhou.aliyuncs.com/idcos-common/mysql:5.7.36
+    container_name: mysql
+    network_mode: "host"
+    volumes:
+      - mysql_data:/bitnami/mysql/data
+      - ./my.cnf:/opt/bitnami/mysql/conf/my_custom.cnf:ro
+    environment:
+      - TZ=Asia/Shanghai
+      - MYSQL_ROOT_PASSWORD={{ MYSQL_ROOT_PASSWORD }}
+      - MYSQL_USER={{ MYSQL_USER }}
+      - MYSQL_PASSWORD={{ MYSQL_PASSWORD }}
+      - MYSQL_CHARACTER_SET=utf8mb4
+      - MYSQL_COLLATE=utf8mb4_general_ci
+      - MYSQL_AUTHENTICATION_PLUGIN=mysql_native_password
+      - MYSQL_REPLICATION_USER={{ MYSQL_REPLICATION_USER }}
+      - MYSQL_REPLICATION_PASSWORD={{ MYSQL_REPLICATION_PASSWORD }}
+{%if ansible_play_hosts.index(inventory_hostname) == 0 %}
+      - MYSQL_REPLICATION_MODE=master
+{% else %}
+      - MYSQL_REPLICATION_MODE=slave
+      - MYSQL_MASTER_HOST={{ hostvars[groups['middleware'][0]].private_ip }}
+      - MYSQL_MASTER_ROOT_PASSWORD={{ MYSQL_ROOT_PASSWORD }}
+{% endif %}
+    healthcheck:
+      test: ['CMD', '/opt/bitnami/scripts/mysql/healthcheck.sh']
+      interval: 15s
+      timeout: 5s
+      retries: 6
+    restart: always
+
+volumes:
+  mysql_data:
+    driver: local

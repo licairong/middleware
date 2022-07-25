@@ -1,0 +1,45 @@
+version: "2"
+
+services:
+  redis-node-0:
+    image: registry-vpc.cn-hangzhou.aliyuncs.com/idcos-common/redis-cluster:6.0
+    container_name: redis-node-0
+    network_mode: "host"
+    volumes:
+      - redis_data-0:/bitnami/redis/data
+    environment:
+      - TZ=Asia/Shanghai
+      - REDIS_PASSWORD={{ REDIS_PASSWORD }}
+      - REDIS_NODES={%- for host in groups["middleware"] -%} {{ hostvars[host].private_ip }}:6379 {{ hostvars[host].private_ip }}:6380 {% endfor %}
+
+      - REDIS_PORT_NUMBER=6379
+      - REDIS_CLUSTER_DYNAMIC_IPS=no
+      - REDIS_CLUSTER_ANNOUNCE_IP={{ private_ip }}
+    restart: always
+
+  redis-node-1:
+    image: registry-vpc.cn-hangzhou.aliyuncs.com/idcos-common/redis-cluster:6.0
+    container_name: redis-node-1
+    network_mode: "host"
+    volumes:
+      - redis_data-1:/bitnami/redis/data
+    environment:
+      - TZ=Asia/Shanghai
+      - REDIS_PASSWORD={{ REDIS_PASSWORD }}
+      - REDIS_NODES={%- for host in groups["middleware"] -%} {{ hostvars[host].private_ip }}:6379 {{ hostvars[host].private_ip }}:6380 {% endfor %}
+
+      - REDIS_PORT_NUMBER=6380
+      - REDIS_CLUSTER_DYNAMIC_IPS=no
+      - REDIS_CLUSTER_ANNOUNCE_IP={{ private_ip }}
+{%if ansible_play_hosts.index(inventory_hostname) == 2 %}
+      - REDISCLI_AUTH={{ REDIS_PASSWORD }}
+      - REDIS_CLUSTER_REPLICAS=1
+      - REDIS_CLUSTER_CREATOR=yes
+{% endif %}
+    restart: always
+
+volumes:
+  redis_data-0:
+    driver: local
+  redis_data-1:
+    driver: local

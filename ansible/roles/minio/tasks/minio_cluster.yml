@@ -1,0 +1,25 @@
+---
+- name: create /opt/idcos
+  file:
+    path: /opt/idcos
+    state: directory
+    mode: 0755
+- name: copy minio docker compose
+  template:
+    src: minio.yml.j2
+    dest: /opt/idcos/minio.yml
+    mode: 0644
+- name: start minio service
+  shell: docker-compose -f /opt/idcos/minio.yml up -d
+- name: wait for cluster ready
+  wait_for:
+    timeout: 20
+  delegate_to: localhost
+- name: delete minio-prepare-data
+  shell: docker rm minio-prepare-data
+- name: get minio cluster info
+  shell: docker-compose -f /opt/idcos/minio.yml exec -T minio bash -c 'curl -w %{http_code} http://localhost:9000/minio/health/live'
+  register: result
+- name: show minio cluster info
+  debug:
+    msg: "minio/health/live: {{ result.stdout }}"

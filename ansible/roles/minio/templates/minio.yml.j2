@@ -1,0 +1,52 @@
+version: "2"
+
+services:
+  minio-prepare-data:
+    image: registry-vpc.cn-hangzhou.aliyuncs.com/idcos-common/bitnami-shell:latest
+    container_name: minio-prepare-data
+    command:
+      - /bin/bash
+      - -ec
+      - |
+        chmod -R g+rwX /data-1 /data-2 /data-3 /data-4
+    volumes:
+      - 'minio_data_1:/data-1'
+      - 'minio_data_2:/data-2'
+      - 'minio_data_3:/data-3'
+      - 'minio_data_4:/data-4'
+
+  minio:
+    image: registry-vpc.cn-hangzhou.aliyuncs.com/idcos-common/minio:2021
+    container_name: minio
+    network_mode: "host"
+    volumes:
+      - 'minio_data_1:/data-1'
+      - 'minio_data_2:/data-2'
+      - 'minio_data_3:/data-3'
+      - 'minio_data_4:/data-4'
+      - 'minio_data:/data'
+      - 'minio_certs:/certs'
+    depends_on:
+      - minio-prepare-data
+    environment:
+      - TZ=Asia/Shanghai
+      - MINIO_ACCESS_KEY={{ MINIO_USER }}
+      - MINIO_SECRET_KEY={{ MINIO_PASSWORD }}
+      - MINIO_DISTRIBUTED_MODE_ENABLED=yes
+      - MINIO_SKIP_CLIENT=yes
+      - MINIO_DISTRIBUTED_NODES={{ groups['middleware'] | map('extract', hostvars, ['private_ip']) | join(':9000/data-{1...4} ') + ':9000/data-{1...4}' }}
+    restart: always
+
+volumes:
+  minio_data_1:
+    driver: local
+  minio_data_2:
+    driver: local
+  minio_data_3:
+    driver: local
+  minio_data_4:
+    driver: local
+  minio_data:
+    driver: local
+  minio_certs:
+    driver: local

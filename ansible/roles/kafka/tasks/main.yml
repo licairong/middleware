@@ -1,0 +1,2 @@
+---
+- include: kafka_cluster.yml

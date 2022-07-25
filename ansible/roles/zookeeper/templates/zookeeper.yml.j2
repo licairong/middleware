@@ -1,0 +1,23 @@
+version: "2"
+
+services:
+  zookeeper:
+    image: registry-vpc.cn-hangzhou.aliyuncs.com/idcos-common/zookeeper:3.6.3
+    container_name: zookeeper
+    network_mode: "host"
+    volumes:
+      - zookeeper_data:/bitnami
+    environment:
+      - TZ=Asia/Shanghai
+      - ZOO_SERVER_ID={{ ansible_play_hosts.index(inventory_hostname) + 1 }}
+      - ZOO_SERVERS={{ groups['middleware'] | map('extract', hostvars, ['private_ip']) | join(':2888:3888,') + ':2888:3888' }}
+      - ZOO_ENABLE_AUTH=yes
+      - ZOO_SERVER_USERS={{ ZOOKEEPER_USER }}
+      - ZOO_SERVER_PASSWORDS={{ ZOOKEEPER_PASSWORD }}
+      - ZOO_CLIENT_USER={{ ZOOKEEPER_USER }}
+      - ZOO_CLIENT_PASSWORD={{ ZOOKEEPER_PASSWORD }}
+    restart: always
+
+volumes:
+  zookeeper_data:
+    driver: local

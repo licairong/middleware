@@ -1,0 +1,11 @@
+---
+- name: download docker install packages
+  shell: |
+    cd /root
+    test -f docker-deploy.sh || wget https://idcos.oss-cn-hangzhou-internal.aliyuncs.com/docker-deploy.sh
+- name: install docker
+  shell: |
+    systemctl is-active docker || bash /root/docker-deploy.sh
+- name: docker login
+  shell: |
+    docker login --username=idcos --password=Yunjikeji#123 registry-vpc.cn-hangzhou.aliyuncs.com

@@ -1,0 +1,7 @@
+---
+- name: set ulimit
+  pam_limits:
+    domain: "*"
+    limit_type: "-"
+    limit_item: nofile
+    value: "655360"

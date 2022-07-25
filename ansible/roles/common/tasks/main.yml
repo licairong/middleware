@@ -1,0 +1,8 @@
+---
+- include: disable_firewall.yml
+- include: disable_selinux.yml
+- include: config_hosts.yml
+- include: config_ulimit.yml
+- include: config_locale.yml
+- include: config_timezone.yml
+- include: install_docker.yml

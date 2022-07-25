@@ -1,0 +1,36 @@
+---
+- name: create /opt/idcos
+  file:
+    path: /opt/idcos
+    state: directory
+    mode: 0755
+- name: copy zookeeper docker compose
+  template:
+    src: zookeeper.yml.j2
+    dest: /opt/idcos/zookeeper.yml
+    mode: 0644
+- name: start zookeeper service
+  shell: docker-compose -f /opt/idcos/zookeeper.yml up -d
+- name: wait for cluster ready
+  wait_for:
+    timeout: 20
+  delegate_to: localhost
+- name: add zookeeper acl
+  shell: |
+    docker-compose -f /opt/idcos/zookeeper.yml exec -T zookeeper bash -c 'zkCli.sh <<EOF
+    addauth digest {{ ZOOKEEPER_USER }}:{{ ZOOKEEPER_PASSWORD }}
+    deleteall /dubbo
+    deleteall /services
+    create /dubbo data auth:{{ ZOOKEEPER_USER }}:{{ ZOOKEEPER_PASSWORD }}:cdwra
+    create /dubbo/metadata
+    create /dubbo/config
+    create /services
+    EOF
+    '
+  when: "ansible_play_hosts.index(inventory_hostname) == 0"
+- name: get zookeeper cluster info
+  shell: docker-compose -f /opt/idcos/zookeeper.yml exec -T zookeeper bash -c 'zkServer.sh status' | grep '^Mode:'
+  register: result
+- name: show zookeeper cluster info
+  debug:
+    msg: "zookeeper {{ result.stdout }}"
